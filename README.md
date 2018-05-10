@@ -35,23 +35,6 @@ for transforming a line of input into an entry in the resulting dataset.
 See below for examples.
 
 
-Health Checks
--------------
-
-Instances of UpdateService expose a healthcheck 
-(See https://atlassian.prod.urbanairship.com/stash/projects/JLIBS/repos/healthcheck/browse)
-via the getHealthcheck() method. It's intended to be included as part of a larger suite of
-healthchecks, and will not trigger alerts unless configured to. This healthcheck will report
-unhealthy if any of the following is true:
-
-* The last attempt to fetch and process an update failed.
-* The service is in any state other that RUNNING.
-* The last check was more than a configurable time ago. By default this is 
-  4 * the fetch interval, but can be overridden with the setUnhealthyCheckAge()
-  method when constructing a new service instance. This can happen if the fetch,
-  processing, or callback invocation take more time than expected.
-
-
 Callbacks
 ---------
 
