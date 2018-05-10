@@ -9,11 +9,11 @@ import java.io.InputStream;
 import java.util.Optional;
 import java.util.zip.GZIPInputStream;
 
-public class FileSource implements ConfigSource<InputStream> {
+public class FileConfigSource implements ConfigSource<InputStream> {
     private final String filePath;
     private final boolean gzipped;
 
-    public FileSource(String filePath, boolean gzipped) {
+    public FileConfigSource(String filePath, boolean gzipped) {
         this.filePath = filePath;
         this.gzipped = gzipped;
     }

@@ -1,105 +1,114 @@
 sarlacc-pit
 ===========
 
-Originally intended to allow multiple services to share a large and dynamically
-updateable blacklist. Now a more general purpose library 
-for dynamically updating an object by polling a flat file.
+Originally intended to allow multiple services to share a large and dynamically updateable blacklist.
+Now a more general purpose library for dynamically updating a collection by polling a canonical source.
+
+`sarlacc-pit` essentially caches the full contents of some backing store, updating it in the background 
+on a cadence. Applications such as whitelists and blacklists where traditional caching would require 
+storing negative results as well as positive are ideal. Other common applications are small datasets 
+such as per-customer overrides which might otherwise be in config files.
+
+Unlike a cache, reads from `sarlacc-pit` are always in memory, and the backing store going unavailable 
+will simply cause the data to be stale, rather than lookups failing if the required value is not in the
+cache.     
 
 
 Configuration Sources
 ---------------------
 
-Sarlacc Pit currently allows polling of configs either on the local file system or
-on a remote system via HTTP. Setup is similar in either case.
-
-```
-new FileSource("etc/my_config.txt", false);
-new FileSource("etc/my_config.gz", true);
-new HttpSource("http://static.prod.urbanairship.com/configs/my_config");
-```
-
-FileSource uses the mtime of the file, HttpSource uses an HTTP conditional Get-If-Newer.
-
-Further sources may be used by implementing the ConfigSource interface.
+Sarlacc Pit allows polling of a variety of config sources. Included in the base client are three,
+FileConfigSource, HttpConfigSource, and MultipleHttpConfigSource. In addition the sarlacc-gcloud 
+module includes a GcsConfigSource backed by Google Cloud Storage. Further sources may be added by 
+implementing the ConfigSource interface.
 
 
 Data Structures
 ---------------
 
-Currently four data structures are provided: A Map, List, Set, and a specialized
-String set, ImmutableArrayStringSet, optimized for memory footprint for large 
-sets such as blacklists.
-
-To use one of the generic data structures you'll need to provide a parse function 
-for transforming a line of input into an entry in the resulting dataset. 
-See below for examples.
+Currently three data structures are supported: maps, lists, and sets. Adding others currently 
+requires changes to the UpdateService builder.
 
 
-Callbacks
----------
+General use
+-----------
 
-Optionally, you may specify callbacks to be run any time a new value is fetched or
-any time a check fails. See the UpdateCallback and FetchFailureCallback interfaces
-for details. It is guaranteed that invocations of these callbacks will never overlap 
-with each other or other invocations of themselves for a given updating collection. 
-Because the callbacks are invoked on the thread responsible for performing fetches, 
-it is imperative that they not block or perform significant amounts of work. If 
-significant work is needed it should be offloaded to another thread.
-
-On service startup any provided UpdateCallback will be invoked with an empty previous 
-collection with an mtime of 0, and the initial value fetched and its mtime. The service
-will not be considered started until the initial update callback has returned, and 
-any error thrown by it will cause service startup to fail. After the callback returns
-scheduled fetch attempts will begin on the specified interval.
-
-
-Example
--------
-
-General use:
 
 ```java
 // Create a ConfigSource as above
-ConfigSource confSource = new HttpSource("http://static.prod.urbanairship.com/config");
+ConfigSource<InputStream> confSource = new HttpSource("http://my.website.com/service_config.properties");
 
-// Build the service
+// Build the service. All parameters here are required, see below for further additional parameters.
 UpdateService<Set<String>> updateService = UpdateService.<String>setServiceBuilder()
                 .setServiceName("my_config")
                 .setLineProcessor(ImmutableArrayStringSetLineProcessor.SUPPLIER)
                 .setConfigSource(confSource)
-                .setFetchFailureCallback(failureCallback)
-                .setUpdateCallback(updateCallback)
                 .setFetchInterval(10, TimeUnit.SECONDS)
                 .build();
 
-// Start the service. This will fail if the service can't complete an initial fetch.
-ServiceUtils.runService(updateService);
+// Start the service. By default this will throw if the service can't complete an initial fetch.
+// See setFallbackValue() below.
+updateService.startAsync().awaitRunning();
 
-// Get the updating data structure. This set is immutable from a client perspective,
-// threadsafe, and safe to keep references to. It will be updated behind the scenes.
-// Doing this before starting the service will throw.
+// Get the updating data structure. It is immutable from a client perspective,
+// threadsafe, and safe to keep references to. New versions of the data will be atomically
+// swapped in. While this is safe to call before service startup, any attempt to read from the
+// returned structure will throw IllegalStateException if the UpdateService is not running.
 Set<String> myUpdatingSet = updateService.getUpdatingCollection();
 ```
 
-Using a custom parse function:
 
-```java
-// Production code should probably do some error handling
-Function<String, Map.Entry<String, Integer>> parseFunc = 
-    new Function<String, Map.Entry<String, Integer>>() {
-                @Override
-                public Map.Entry<String, Integer> apply(String input) {
-                    String[] chunks = input.split(",");
-                    Integer val = Integer.parseInt(chunks[1]);
-                    return new AbstractMap.SimpleEntry<String, Integer>(chunks[0], val);
-                    }
-                };
-                
-UpdateService<Map<String,Integer>> updateService = 
-    UpdateService.<String,Integer>mapServiceBuilder()
-                .setServiceName("my_map_config")
-                .setLineProcessor(MapLineProcessor.makeSupplier(parseFunc))
-                .setConfigSource(configSource)
-                .setFetchInterval(10, TimeUnit.SECONDS)
-                .build();
-```
+Optional Service Parameters
+---------------------------
+
+#### Metrics
+
+        setMetricRegistry(MetricRegistry metricRegistry)
+        setMetricNamer(MetricNamer metricNamer);
+
+If a Dropwizard MetricsRegistry is provided, the service will expose a number of metrics, see the 
+UpdateService.Metrics class for a full list. By default, metrics will be named in a JMX compatible
+manner, but a MetricNamer may be provided to customize naming.
+
+#### Update Callback
+
+        setUpdateCallback(UpdateCallback<D> updateCallback)
+
+Provide a callback to be invoked every time a new value is fetched from the config source. 
+On service startup any provided UpdateCallback will be invoked with an absent previous 
+collection and the initial value fetched and its mtime. Any exceptions thrown by the callback will
+be logged but otherwise ignored. 
+
+It is guaranteed that invocations of this callback will never overlap, and will never overlap with
+an invocation of the failure callback if defined. Execution of this callback is performed on the thread
+responsible for polling and fetching new values, so performing significant work in it is not advised.
+
+#### Failure Callback
+
+        setFetchFailureCallback(FetchFailureCallback fetchFailureCallback)
+        
+Provide a callback to be invoked any time a fetch operation throws.         
+
+It is guaranteed that invocations of this callback will never overlap, and will never overlap with
+an invocation of the update callback if defined. Execution of this callback is performed on the thread
+responsible for polling and fetching new values, so performing significant work in it is not advised.
+
+
+#### Fallback Value
+
+        setFallbackValue(D fallbackValue, long fallbackVersion)
+
+By default, failure to perform the initial fetch() operation will cause service startup to fail. This
+means that in the event of a config source outage new instances will not be able to start, though existing 
+instances will continue using the last known good value. If a fallback value is provided, it will be used
+until a fetch is successful.
+
+
+Monitoring
+----------
+
+UpdateService instances are designed to survive arbitrary unavailability of the config source that backs 
+them. This means that the collection provided by the service can go arbitrarily out of sync with that backing
+source. Services should monitor the age of the last successful fetch, either using Dropwizard metrics or 
+custom handling using the `UpdateService.getLastSuccessfulCheck()` method, and take action if the difference
+is greater than is tolerable.

@@ -97,9 +97,6 @@ public class UpdateService<S, C> extends AbstractIdleService {
     }
 
     public C getUpdatingCollection() {
-        if (reference.get() == null) {
-            throw new IllegalStateException("The service must be successfully started before calling getUpdatingCollection()");
-        }
         return updatingCollection;
     }
 
@@ -163,9 +160,13 @@ public class UpdateService<S, C> extends AbstractIdleService {
                 }
                 // This shouldn't be called in an overlapping manner, but let's be paranoid.
                 synchronized (UpdateService.this) {
-                    Optional<Update<S>> maybeUpdate;
+                    final Optional<Update<S>> maybeUpdate;
                     try (Closeable checkTime = getTimer(Metrics::getCheckTimer)) {
-                        maybeUpdate = configSource.fetchIfNewer(currentVersion.get());
+                        if (fallbackValue.isPresent() && fallbackValue.get() == reference.get()) {
+                            maybeUpdate = Optional.of(configSource.fetch());
+                        } else {
+                            maybeUpdate = configSource.fetchIfNewer(currentVersion.get());
+                        }
                     }
                     successiveFailures.set(0);
 
@@ -251,7 +252,6 @@ public class UpdateService<S, C> extends AbstractIdleService {
         private ConfigSource<S> configSource;
         private String serviceName;
         private long fetchIntervalMillis;
-        private long unhealthyCheckAge = -1;
 
         private Optional<D> fallbackValue = Optional.empty();
         private long fallbackVersion = Long.MIN_VALUE;

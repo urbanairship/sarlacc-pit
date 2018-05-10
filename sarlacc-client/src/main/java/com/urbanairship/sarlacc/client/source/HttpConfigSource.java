@@ -12,10 +12,10 @@ import java.util.Date;
 import java.util.Optional;
 import java.util.zip.GZIPInputStream;
 
-public class HttpSource implements ConfigSource<InputStream> {
+public class HttpConfigSource implements ConfigSource<InputStream> {
     private final URL sourceUrl;
 
-    public HttpSource(String sourceUrlStr) {
+    public HttpConfigSource(String sourceUrlStr) {
         try {
             this.sourceUrl = new URL(sourceUrlStr);
         } catch (Exception e) {

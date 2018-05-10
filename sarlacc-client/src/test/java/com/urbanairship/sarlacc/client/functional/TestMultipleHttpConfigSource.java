@@ -5,7 +5,7 @@ import com.google.common.collect.Sets;
 import com.google.common.io.CharStreams;
 import com.urbanairship.sarlacc.client.model.Update;
 import com.urbanairship.sarlacc.client.source.ConfigSource;
-import com.urbanairship.sarlacc.client.source.MultipleHttpSource;
+import com.urbanairship.sarlacc.client.source.MultipleHttpConfigSource;
 import com.urbanairship.sarlacc.client.util.TestHttpServer;
 import com.urbanairship.sarlacc.client.util.TestUtil;
 import org.apache.log4j.Level;
@@ -56,7 +56,7 @@ public class TestMultipleHttpConfigSource {
         connectionUrls.add(sourceServer4.getLocalAddr());
         connectionUrls.add(sourceServer3.getLocalAddr());
 
-        ConfigSource<InputStream> multipleHttpSource = new MultipleHttpSource(connectionUrls);
+        ConfigSource<InputStream> multipleHttpSource = new MultipleHttpConfigSource(connectionUrls);
 
         Update<InputStream> fetch = multipleHttpSource.fetch();
         Set<String> got = Sets.newHashSet(CharStreams.readLines(new InputStreamReader(fetch.newVal)));

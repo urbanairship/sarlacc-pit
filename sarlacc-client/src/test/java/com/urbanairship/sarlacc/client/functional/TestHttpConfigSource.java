@@ -4,7 +4,7 @@ import com.google.common.collect.Sets;
 import com.google.common.io.CharStreams;
 import com.urbanairship.sarlacc.client.model.Update;
 import com.urbanairship.sarlacc.client.source.ConfigSource;
-import com.urbanairship.sarlacc.client.source.HttpSource;
+import com.urbanairship.sarlacc.client.source.HttpConfigSource;
 import com.urbanairship.sarlacc.client.util.TestHttpServer;
 import com.urbanairship.sarlacc.client.util.TestUtil;
 import org.junit.Rule;
@@ -31,7 +31,7 @@ public class TestHttpConfigSource {
 
         sourceServer.setHandler(TestUtil.buildHandler(blacklist, ctime));
 
-        ConfigSource<InputStream> configSource = new HttpSource(sourceServer.getLocalAddr());
+        ConfigSource<InputStream> configSource = new HttpConfigSource(sourceServer.getLocalAddr());
         Update<InputStream> update = configSource.fetch();
 
         Set<String> got = Sets.newHashSet(CharStreams.readLines(new InputStreamReader(update.newVal)));
@@ -46,7 +46,7 @@ public class TestHttpConfigSource {
 
         sourceServer.setHandler(TestUtil.buildHandler(blacklist, ctime));
 
-        ConfigSource<InputStream> configSource = new HttpSource(sourceServer.getLocalAddr());
+        ConfigSource<InputStream> configSource = new HttpConfigSource(sourceServer.getLocalAddr());
         Optional<Update<InputStream>> update = configSource.fetchIfNewer(ctime - 1000);
         assertTrue(update.isPresent());
 
@@ -61,7 +61,7 @@ public class TestHttpConfigSource {
 
         sourceServer.setHandler(TestUtil.buildHandler(blacklist, ctime));
 
-        ConfigSource<InputStream> configSource = new HttpSource(sourceServer.getLocalAddr());
+        ConfigSource<InputStream> configSource = new HttpConfigSource(sourceServer.getLocalAddr());
         Optional<Update<InputStream>> update = configSource.fetchIfNewer(ctime + 1000);
         assertFalse(update.isPresent());
     }

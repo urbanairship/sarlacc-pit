@@ -28,9 +28,9 @@ public abstract class UpdatingCollection<C> {
     protected void checkState() {
         if (updateService == null) {
             throw new IllegalStateException("Backing update service was never set!");
-        } else if (updateService.state() == Service.State.NEW) {
+        } else if (updateService.state() != Service.State.NEW) {
             final String msg = String.format(
-                    "Attempted to read updating collection backed by un-started update service. State: '%s'",
+                    "Attempted to read updating collection backed by non-running update service. State: '%s'",
                     updateService.state());
             throw new IllegalStateException(msg);
         }

@@ -10,23 +10,23 @@ import java.io.InputStream;
 import java.util.List;
 import java.util.Optional;
 
-public class MultipleHttpSource implements ConfigSource<InputStream> {
+public class MultipleHttpConfigSource implements ConfigSource<InputStream> {
 
-    private static final Logger log = LogManager.getLogger(MultipleHttpSource.class);
-    private final List<HttpSource> httpSources;
+    private static final Logger log = LogManager.getLogger(MultipleHttpConfigSource.class);
+    private final List<HttpConfigSource> httpConfigSources;
 
-    public MultipleHttpSource(List<String> sourceUrls) {
-        httpSources = Lists.newArrayList();
+    public MultipleHttpConfigSource(List<String> sourceUrls) {
+        httpConfigSources = Lists.newArrayList();
         for (String sourceUrl : sourceUrls) {
-            httpSources.add(new HttpSource(sourceUrl));
+            httpConfigSources.add(new HttpConfigSource(sourceUrl));
         }
     }
 
     @Override
     public Optional<Update<InputStream>> fetchIfNewer(long ifNewerThan) throws IOException {
-        for (HttpSource httpSource : httpSources) {
+        for (HttpConfigSource httpConfigSource : httpConfigSources) {
             try {
-                return httpSource.fetchIfNewer(ifNewerThan);
+                return httpConfigSource.fetchIfNewer(ifNewerThan);
             } catch (Exception e) {
                 log.error(e);
             }

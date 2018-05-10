@@ -4,7 +4,7 @@ import com.google.common.collect.Sets;
 import com.google.common.io.CharStreams;
 import com.urbanairship.sarlacc.client.model.Update;
 import com.urbanairship.sarlacc.client.source.ConfigSource;
-import com.urbanairship.sarlacc.client.source.FileSource;
+import com.urbanairship.sarlacc.client.source.FileConfigSource;
 import com.urbanairship.sarlacc.client.util.TestUtil;
 import org.apache.commons.lang.StringUtils;
 import org.junit.Test;
@@ -31,7 +31,7 @@ public class TestFileConfigSource {
         final Set<String> blacklist = TestUtil.getBlacklistAsSet(100);
 
         File blacklistFile = getTestBlacklistFile(blacklist);
-        ConfigSource<InputStream> configSource = new FileSource(blacklistFile.getAbsolutePath(), false);
+        ConfigSource<InputStream> configSource = new FileConfigSource(blacklistFile.getAbsolutePath(), false);
         final long ctime = blacklistFile.lastModified();
 
         Update<InputStream> update = configSource.fetch();
@@ -47,7 +47,7 @@ public class TestFileConfigSource {
         final long ctime = System.currentTimeMillis();
 
         File blacklistFile = getTestBlacklistFile(blacklist);
-        ConfigSource<InputStream> configSource = new FileSource(blacklistFile.getAbsolutePath(), false);
+        ConfigSource<InputStream> configSource = new FileConfigSource(blacklistFile.getAbsolutePath(), false);
 
         Optional<Update<InputStream>> update = configSource.fetchIfNewer(ctime - 1000);
         assertTrue(update.isPresent());
@@ -62,7 +62,7 @@ public class TestFileConfigSource {
         final long ctime = System.currentTimeMillis();
 
         File blacklistFile = getTestBlacklistFile(blacklist);
-        ConfigSource<InputStream> configSource = new FileSource(blacklistFile.getAbsolutePath(), false);
+        ConfigSource<InputStream> configSource = new FileConfigSource(blacklistFile.getAbsolutePath(), false);
 
         Optional<Update<InputStream>> update = configSource.fetchIfNewer(ctime + 1000);
         assertFalse(update.isPresent());
@@ -73,7 +73,7 @@ public class TestFileConfigSource {
 
         File blacklistFile = getTestGZippedBlacklistFile(blacklist);
         final long ctime = blacklistFile.lastModified();
-        ConfigSource<InputStream> configSource = new FileSource(blacklistFile.getAbsolutePath(), true);
+        ConfigSource<InputStream> configSource = new FileConfigSource(blacklistFile.getAbsolutePath(), true);
 
         Update<InputStream> update = configSource.fetch();
 
@@ -88,7 +88,7 @@ public class TestFileConfigSource {
         final long ctime = System.currentTimeMillis();
 
         File blacklistFile = getTestGZippedBlacklistFile(blacklist);
-        ConfigSource<InputStream> configSource = new FileSource(blacklistFile.getAbsolutePath(), true);
+        ConfigSource<InputStream> configSource = new FileConfigSource(blacklistFile.getAbsolutePath(), true);
 
         Optional<Update<InputStream>> update = configSource.fetchIfNewer(ctime - 1000);
         assertTrue(update.isPresent());
@@ -103,7 +103,7 @@ public class TestFileConfigSource {
         final long ctime = System.currentTimeMillis();
 
         File blacklistFile = getTestGZippedBlacklistFile(blacklist);
-        ConfigSource<InputStream> configSource = new FileSource(blacklistFile.getAbsolutePath(), true);
+        ConfigSource<InputStream> configSource = new FileConfigSource(blacklistFile.getAbsolutePath(), true);
 
         Optional<Update<InputStream>> update = configSource.fetchIfNewer(ctime + 1000);
         assertFalse(update.isPresent());
