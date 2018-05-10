@@ -1,0 +1,6 @@
+.idea/
+*.iml
+*~
+sarlacc-client/target/
+sarlacc-airship/target/
+sarlacc-gcloud/target/
