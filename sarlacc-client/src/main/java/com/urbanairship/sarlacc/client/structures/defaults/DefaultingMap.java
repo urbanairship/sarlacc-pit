@@ -11,7 +11,7 @@ import java.util.Set;
 public class DefaultingMap<K, V> implements Map<K, V> {
     private final V valueToReturn;
 
-    private DefaultingMap(V valueToReturn) {
+    public DefaultingMap(V valueToReturn) {
         this.valueToReturn = valueToReturn;
     }
 
