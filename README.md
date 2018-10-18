@@ -101,8 +101,7 @@ responsible for polling and fetching new values, so performing significant work 
 By default, failure to perform the initial fetch() operation will cause service startup to fail. This
 means that in the event of a config source outage new instances will not be able to start, though existing 
 instances will continue using the last known good value. If a fallback value is provided, it will be used
-until a fetch is successful.
-
+until a fetch is successful. The `Fallbacks` class provides static methods for building common fallback structures.
 
 Monitoring
 ----------

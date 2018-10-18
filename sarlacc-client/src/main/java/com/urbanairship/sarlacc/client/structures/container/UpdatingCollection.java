@@ -5,6 +5,7 @@ import com.google.common.util.concurrent.Service;
 
 public abstract class UpdatingCollection<C> {
     private Service updateService = null;
+    private boolean blockReads = false;
 
     public synchronized void setUpdateService(Service updateService) {
         if (this.updateService != null) {
@@ -25,10 +26,16 @@ public abstract class UpdatingCollection<C> {
         return (C) this;
     }
 
+    public void setBlockReads(boolean blockReads) {
+        this.blockReads = blockReads;
+    }
+
     protected void checkState() {
         if (updateService == null) {
             throw new IllegalStateException("Backing update service was never set!");
-        } else if (updateService.state() != Service.State.NEW) {
+        } else if (blockReads) {
+            throw new IllegalStateException("Data too stale, read failed!");
+        } else if (updateService.state() != Service.State.RUNNING) {
             final String msg = String.format(
                     "Attempted to read updating collection backed by non-running update service. State: '%s'",
                     updateService.state());

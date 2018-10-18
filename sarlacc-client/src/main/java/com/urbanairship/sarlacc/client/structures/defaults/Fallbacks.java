@@ -25,7 +25,7 @@ public class Fallbacks {
         return new DefaultingMap<>(value);
     }
 
-    public static <K, V> Map<K, V> emptyMap(V value) {
+    public static <K, V> Map<K, V> emptyMap() {
         return ImmutableMap.of();
     }
 }

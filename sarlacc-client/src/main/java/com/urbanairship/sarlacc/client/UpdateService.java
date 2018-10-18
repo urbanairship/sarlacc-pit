@@ -49,7 +49,7 @@ public class UpdateService<S, C> extends AbstractIdleService {
 
     private static final Closeable NOOP_CLOSEABLE = () -> {};
 
-    private final C updatingCollection;
+    private final UpdatingCollection<C> updatingCollection;
     private final AtomicReference<C> reference;
 
     private final AtomicReference<Long> currentVersion;
@@ -62,6 +62,7 @@ public class UpdateService<S, C> extends AbstractIdleService {
     private final FetchFailureCallback fetchFailureCallback;
     private final UpdateCallback<C> updateCallback;
     private final AtomicInteger successiveFailures = new AtomicInteger(0);
+    private final long maxFailures;
 
     private final AtomicReference<Long> lastSuccessfulCheck;
 
@@ -73,8 +74,8 @@ public class UpdateService<S, C> extends AbstractIdleService {
     private final AtomicReference<String> lastError = new AtomicReference<>(null);
 
     private UpdateService(ConfigSource<S> configSource, UpdateProcessor<S, ? extends C> updateProcessor,
-                          AtomicReference<C> reference, C updatingCollection,
-                          final long fetchIntervalMillis, String serviceName, Optional<MetricRegistry> metricRegistry,
+                          AtomicReference<C> reference, UpdatingCollection<C> updatingCollection,
+                          final long fetchIntervalMillis, String serviceName, long maxFailures, Optional<MetricRegistry> metricRegistry,
                           MetricNamer metricNamer, FetchFailureCallback fetchFailureCallback, UpdateCallback<C> updateCallback,
                           Optional<C> fallbackValue, long fallbackVersion) {
 
@@ -84,6 +85,7 @@ public class UpdateService<S, C> extends AbstractIdleService {
         this.serviceName = serviceName;
         this.reference = reference;
         this.updatingCollection = updatingCollection;
+        this.maxFailures = maxFailures;
         this.fetchFailureCallback = fetchFailureCallback;
         this.updateCallback = updateCallback;
         this.fallbackValue = fallbackValue;
@@ -97,7 +99,7 @@ public class UpdateService<S, C> extends AbstractIdleService {
     }
 
     public C getUpdatingCollection() {
-        return updatingCollection;
+        return updatingCollection.getAsCollectionType();
     }
 
     public String getServiceName() {
@@ -169,6 +171,7 @@ public class UpdateService<S, C> extends AbstractIdleService {
                         }
                     }
                     successiveFailures.set(0);
+                    updatingCollection.setBlockReads(false);
 
                     if (maybeUpdate.isPresent()) {
                         try (final Update<S> update = maybeUpdate.get()) {
@@ -214,6 +217,9 @@ public class UpdateService<S, C> extends AbstractIdleService {
                 }
             } catch (Throwable t) {
                 final int failures = successiveFailures.incrementAndGet();
+                if (failures >= maxFailures) {
+                    updatingCollection.setBlockReads(true);
+                }
 
                 log.error("Error while checking for update for " + serviceName, t);
                 lastError.set(t.getMessage());
@@ -261,6 +267,7 @@ public class UpdateService<S, C> extends AbstractIdleService {
 
         private UpdateCallback<D> updateCallback = (p, pm, c, cm) -> {};
         private FetchFailureCallback fetchFailureCallback = (l, l2, i, t) -> {};
+        private long maxFailures = Long.MAX_VALUE;
 
         private Builder(AtomicReference<D> backingRef, UpdatingCollection<D> collectionWrapper) {
             this.backingRef = backingRef;
@@ -313,14 +320,20 @@ public class UpdateService<S, C> extends AbstractIdleService {
             return this;
         }
 
+        public Builder setMaxFailures(long maxFailures) {
+            this.maxFailures = maxFailures;
+            return this;
+        }
+
         public UpdateService<S, D> build() {
             Preconditions.checkNotNull(serviceName);
             Preconditions.checkNotNull(updateProcessor);
             Preconditions.checkNotNull(configSource);
             Preconditions.checkArgument(fetchIntervalMillis > 0);
+            Preconditions.checkArgument(maxFailures > 0);
 
             final UpdateService<S, D> updateService = new UpdateService<>(configSource, updateProcessor, backingRef,
-                    collectionWrapper.getAsCollectionType(), fetchIntervalMillis, serviceName, metricRegistry, metricNamer,
+                    collectionWrapper, fetchIntervalMillis, serviceName, maxFailures, metricRegistry, metricNamer,
                     fetchFailureCallback, updateCallback, fallbackValue, fallbackVersion);
 
             collectionWrapper.setUpdateService(updateService);
