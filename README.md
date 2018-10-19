@@ -20,14 +20,14 @@ Configuration Sources
 Sarlacc Pit allows polling of a variety of config sources. Included in the base client are three,
 FileConfigSource, HttpConfigSource, and MultipleHttpConfigSource. In addition the sarlacc-gcloud 
 module includes a GcsConfigSource backed by Google Cloud Storage. Further sources may be added by 
-implementing the ConfigSource interface.
+implementing the ConfigSource interface. Ideally, config sources provide some get-if-newer functionality,
+but if not both `fetch()` operations can be made unqualified.
 
 
 Data Structures
 ---------------
 
-Currently three data structures are supported: maps, lists, and sets. Adding others currently 
-requires changes to the UpdateService builder.
+Currently three data structures are supported: maps, lists, and sets. 
 
 
 General use
@@ -76,7 +76,7 @@ manner, but a MetricNamer may be provided to customize naming.
 
 Provide a callback to be invoked every time a new value is fetched from the config source. 
 On service startup any provided UpdateCallback will be invoked with an absent previous 
-collection and the initial value fetched and its mtime. Any exceptions thrown by the callback will
+collection and the initial value fetched and its version. Any exceptions thrown by the callback will
 be logged but otherwise ignored. 
 
 It is guaranteed that invocations of this callback will never overlap, and will never overlap with
@@ -98,10 +98,20 @@ responsible for polling and fetching new values, so performing significant work 
 
         setFallbackValue(D fallbackValue, long fallbackVersion)
 
-By default, failure to perform the initial fetch() operation will cause service startup to fail. This
+By default, failure to perform the initial `fetch()` operation will cause service startup to fail. This
 means that in the event of a config source outage new instances will not be able to start, though existing 
 instances will continue using the last known good value. If a fallback value is provided, it will be used
 until a fetch is successful. The `Fallbacks` class provides static methods for building common fallback structures.
+
+
+#### Max Failures
+
+        setMaxFailures(long maxFailures) {
+
+By default, the mirrored collection remains usable no matter how stale its become. If an upper bound is needed,
+the service can be configured to start rejecting reads with an `IllegalStateException` if `maxFailures` fetch attempts
+in a row fail.
+
 
 Monitoring
 ----------
