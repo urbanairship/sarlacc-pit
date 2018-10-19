@@ -137,6 +137,10 @@ public class UpdateService<S, C> extends AbstractIdleService {
                 reference.set(fallbackValue.get());
                 currentVersion.set(fallbackVersion);
                 metrics.ifPresent(metrics -> metrics.getFallbackUsed().inc());
+                if (maxFailures == 1) {
+                    updatingCollection.setBlockReads(true);
+                }
+
                 log.error("Initial fetch failed and fallback used for service: " + serviceName, ioe);
             } else {
                 throw new Exception("Exception while starting update service for " + serviceName, ioe);
@@ -320,7 +324,7 @@ public class UpdateService<S, C> extends AbstractIdleService {
             return this;
         }
 
-        public Builder setMaxFailures(long maxFailures) {
+        public Builder<S, D> setMaxFailures(long maxFailures) {
             this.maxFailures = maxFailures;
             return this;
         }
