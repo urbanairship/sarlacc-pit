@@ -25,12 +25,12 @@ public class TestHttpServer extends ExternalResource {
     });
 
     public TestHttpServer() {
-        listenPort = getAvailablePort();
+        this.listenPort = getAvailablePort();
         this.server = new Server(listenPort);
     }
 
     private static int getAvailablePort() {
-        try (ServerSocket ss = new ServerSocket()) {
+        try (ServerSocket ss = new ServerSocket(0)) {
             ss.setReuseAddress(true);
             return ss.getLocalPort();
         } catch (final IOException e) {
