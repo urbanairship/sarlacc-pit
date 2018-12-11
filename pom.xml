@@ -17,7 +17,7 @@
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
-        <jetty.version>8.0.4.v20111024</jetty.version>
+        <jetty.version>9.3.24.v20180605</jetty.version>
         <airship-client.version>3.3.2</airship-client.version>
     </properties>
 
@@ -104,6 +104,7 @@
                 <configuration>
                     <failBuildInCaseOfDifferentContentConflict>true</failBuildInCaseOfDifferentContentConflict>
                     <failBuildInCaseOfEqualContentConflict>false</failBuildInCaseOfEqualContentConflict>
+                    <checkTestClasspath>false</checkTestClasspath>
                     <ignoredResources>
                       <ignoredResource>.*log4j.properties</ignoredResource>
                       <ignoredResource>.*html</ignoredResource>

@@ -44,7 +44,7 @@ public class TestHttpServer extends ExternalResource {
 
     @Override
     protected void before() throws Throwable {
-        server.setGracefulShutdown(100);
+        server.setStopTimeout(100);
         server.setHandler(new AbstractHandler() {
             @Override
             public void handle(String target, Request baseRequest, HttpServletRequest request, HttpServletResponse response)
