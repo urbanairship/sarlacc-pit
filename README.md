@@ -1,17 +1,17 @@
 sarlacc-pit
 ===========
 
-Originally intended to allow multiple services to share a large and dynamically updateable blacklist.
-Now a more general purpose library for dynamically updating a collection by polling a canonical source.
+Originally intended to allow multiple services to share a large updateable deny list, now a more general 
+purpose library for dynamically updating a collection by polling a canonical source.
 
 `sarlacc-pit` essentially caches the full contents of some backing store, updating it in the background 
-on a cadence. Applications such as whitelists and blacklists where traditional caching would require 
+on a cadence. Applications such as accept and deny lists where traditional caching would require 
 storing negative results as well as positive are ideal. Other common applications are small datasets 
 such as per-customer overrides which might otherwise be in config files.
 
 Unlike a cache, reads from `sarlacc-pit` are always in memory, and the backing store going unavailable 
 will simply cause the data to be stale, rather than lookups failing if the required value is not in the
-cache.     
+cache.
 
 
 Configuration Sources
