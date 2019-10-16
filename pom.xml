@@ -31,8 +31,8 @@
             <url>https://api.bintray.com/maven/urbanairship/open-source/sarlacc-pit/;publish=1</url>
         </repository>
         <snapshotRepository>
-            <id>releases</id>
-            <url>http://nexus.prod.urbanairship.com/content/repositories/snapshots</url>
+            <id>snapshots</id>
+            <url>gs://airship-maven-snapshots/snapshots</url>
         </snapshotRepository>
     </distributionManagement>
     
