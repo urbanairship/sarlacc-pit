@@ -1,6 +1,7 @@
 package com.urbanairship.sarlacc.client.util;
 
 import com.google.common.base.Preconditions;
+import com.google.common.collect.Maps;
 import com.google.common.collect.Sets;
 import org.apache.commons.lang.RandomStringUtils;
 import org.eclipse.jetty.server.Handler;
@@ -12,6 +13,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 import java.io.IOException;
 import java.io.OutputStream;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.zip.GZIPOutputStream;
@@ -28,6 +30,17 @@ public class TestUtil {
 
         for (int i = 0; i < size; i++) {
             blacklist.add(RandomStringUtils.randomAlphanumeric(22));
+        }
+
+        return blacklist;
+    }
+
+    public static Map<Integer, String> getRandomMapOfSize(int size) {
+        Preconditions.checkArgument(size > 0);
+        Map<Integer, String> blacklist = Maps.newHashMap();
+
+        for (int i = 0; i < size; i++) {
+            blacklist.put(i, RandomStringUtils.randomAlphanumeric(22));
         }
 
         return blacklist;
