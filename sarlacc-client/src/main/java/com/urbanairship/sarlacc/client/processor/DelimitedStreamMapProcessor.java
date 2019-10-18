@@ -12,15 +12,15 @@ import java.util.function.Function;
 import java.util.function.Supplier;
 
 public class DelimitedStreamMapProcessor<K, V> implements UpdateProcessor<InputStream, Map<K, V>> {
-    private final LineProcessorSupplier<Map<K, V>> lineProcessorSupplier;
+    private final Supplier<LineProcessor<Map<K, V>>> lineProcessorSupplier;
 
-    private DelimitedStreamMapProcessor(LineProcessorSupplier<Map<K, V>> lineProcessorSupplier) {
+    public DelimitedStreamMapProcessor(Supplier<LineProcessor<Map<K, V>>> lineProcessorSupplier) {
         this.lineProcessorSupplier = lineProcessorSupplier;
     }
 
     @Override
     public Map<K, V> process(InputStream input) throws IOException {
-        return CharStreams.readLines(new InputStreamReader(input), lineProcessorSupplier.getLineProcessor());
+        return CharStreams.readLines(new InputStreamReader(input), lineProcessorSupplier.get());
     }
 
     public static SupplierBuilder<String, String> supplierBuilder() {
@@ -50,12 +50,9 @@ public class DelimitedStreamMapProcessor<K, V> implements UpdateProcessor<InputS
         }
 
         public Supplier<DelimitedStreamMapProcessor<K, V>> build() {
-            return () -> new DelimitedStreamMapProcessor(new LineProcessorSupplier<Map<? extends Object, ? extends Object>>() {
-                @Override
-                public LineProcessor<Map<? extends Object, ? extends Object>> getLineProcessor() {
-                    return new ParsingLineProcessor<>(keyParser, valueParser, delimiter);
-                }
-            });
+            return () -> new DelimitedStreamMapProcessor(
+                    () -> new ParsingLineProcessor<>(keyParser, valueParser, delimiter)
+            );
         }
     }
 
@@ -102,9 +99,4 @@ public class DelimitedStreamMapProcessor<K, V> implements UpdateProcessor<InputS
             return mapBuilder.build();
         }
     }
-
-    public interface LineProcessorSupplier<C> {
-        LineProcessor<C> getLineProcessor();
-    }
-
 }
