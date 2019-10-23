@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.AbstractIdleService;
 import com.urbanairship.sarlacc.client.metrics.JmxMetricNamer;
 import com.urbanairship.sarlacc.client.metrics.MetricNamer;
+import com.urbanairship.sarlacc.client.model.LastSuccessDetails;
 import com.urbanairship.sarlacc.client.model.Update;
 import com.urbanairship.sarlacc.client.processor.UpdateProcessor;
 import com.urbanairship.sarlacc.client.source.ConfigSource;
@@ -251,8 +252,8 @@ public class UpdateService<S, C> extends AbstractIdleService {
                 metrics.ifPresent(metrics -> metrics.getErrorMeter().mark());
 
                 try (Closeable failCallbackTime = getTimer(Metrics::getFailureCallbackTimer)) {
-                    final FailureCallback.LastSuccessDetails lastSuccessDetails =
-                            new FailureCallback.LastSuccessDetails(currentVersion.get(), lastSuccessfulCheck.get(), failures);
+                    final LastSuccessDetails lastSuccessDetails =
+                            new LastSuccessDetails(currentVersion.get(), lastSuccessfulCheck.get(), failures);
 
                     switch (failureCallback.onFailure(Optional.of(lastSuccessDetails), t)) {
                         case NO_ACTION:

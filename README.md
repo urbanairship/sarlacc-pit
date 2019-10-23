@@ -85,9 +85,12 @@ responsible for polling and fetching new values, so performing significant work 
 
 #### Failure Callback
 
-        setFetchFailureCallback(FetchFailureCallback fetchFailureCallback)
+        setFailureCallback(FailureCallback failureCallback)
         
-Provide a callback to be invoked any time a fetch operation throws.         
+Provide a callback to be invoked any time a fetch or process operation throws. Depending on the return value of the 
+callback either no action will be taken, the exposed collection will be put in an error state, or the whole service
+will be shut down. Note that if the initial fetch fails and the failure callback returns SHUT_DOWN, an exception will
+be thrown instead.        
 
 It is guaranteed that invocations of this callback will never overlap, and will never overlap with
 an invocation of the update callback if defined. Execution of this callback is performed on the thread
@@ -98,7 +101,7 @@ responsible for polling and fetching new values, so performing significant work 
 
         setFallbackValue(D fallbackValue, long fallbackVersion)
 
-By default, failure to perform the initial `fetch()` operation will cause service startup to fail. This
+By default, failure to perform the initial `fetch()` and `process()` operations will cause service startup to fail. This
 means that in the event of a config source outage new instances will not be able to start, though existing 
 instances will continue using the last known good value. If a fallback value is provided, it will be used
 until a fetch is successful. The `Fallbacks` class provides static methods for building common fallback structures.
