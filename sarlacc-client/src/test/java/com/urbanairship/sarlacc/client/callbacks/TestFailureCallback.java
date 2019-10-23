@@ -1,7 +1,7 @@
 package com.urbanairship.sarlacc.client.callbacks;
 
 import com.google.common.collect.ImmutableSet;
-import com.urbanairship.sarlacc.client.FetchFailureCallback;
+import com.urbanairship.sarlacc.client.FailureCallback;
 import com.urbanairship.sarlacc.client.UpdateService;
 import com.urbanairship.sarlacc.client.model.Update;
 import com.urbanairship.sarlacc.client.processor.UpdateProcessor;
@@ -34,7 +34,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-public class TestFetchFailureCallback {
+public class TestFailureCallback {
     @Mock
     ConfigSource<String> configSource;
 
@@ -42,7 +42,7 @@ public class TestFetchFailureCallback {
     UpdateProcessor<String, Set<String>> updateProcessor;
 
     @Mock
-    FetchFailureCallback fetchFailureCallback;
+    FailureCallback failureCallback;
 
     private UpdateService<String, Set<String>> updateService;
 
@@ -55,7 +55,7 @@ public class TestFetchFailureCallback {
                 .setUpdateProcessor(updateProcessor)
                 .setConfigSource(configSource)
                 .setFetchInterval(100, TimeUnit.MILLISECONDS)
-                .setFetchFailureCallback(fetchFailureCallback)
+                .setFailureCallback(failureCallback)
                 .build();
     }
 
@@ -79,7 +79,7 @@ public class TestFetchFailureCallback {
         updateService.startAsync().awaitRunning();
 
         latch.await();
-        verifyZeroInteractions(fetchFailureCallback);
+        verifyZeroInteractions(failureCallback);
     }
 
     @Test
@@ -104,7 +104,7 @@ public class TestFetchFailureCallback {
         updateService.startAsync().awaitRunning();
         latch.await();
 
-        verify(fetchFailureCallback, times(3)).onFetchFailure(eq(timestamp), geq(timestamp), and(gt(0), lt(4)), eq(ioException));
+        verify(failureCallback, times(3)).onFailure(eq(timestamp), geq(timestamp), and(gt(0), lt(4)), eq(ioException));
     }
 
     // Make sure we correctly deal with the failure callback itself throwing
@@ -115,8 +115,8 @@ public class TestFetchFailureCallback {
         final CountDownAnswer<Optional<Update<String>>> answerOptional =
                 new CountDownAnswer<Optional<Update<String>>>(latch, Optional.<Update<String>>empty());
 
-        doThrow(new NullPointerException()).when(fetchFailureCallback)
-                .onFetchFailure(anyLong(), anyLong(), anyInt(), any(Throwable.class));
+        doThrow(new NullPointerException()).when(failureCallback)
+                .onFailure(anyLong(), anyLong(), anyInt(), any(Throwable.class));
 
         when(updateProcessor.process(anyString())).thenReturn(ImmutableSet.<String>of());
 
@@ -130,6 +130,6 @@ public class TestFetchFailureCallback {
         updateService.startAsync().awaitRunning();
         latch.await();
 
-        verify(fetchFailureCallback).onFetchFailure(anyLong(), anyLong(), anyInt(), any(Throwable.class));
+        verify(failureCallback).onFailure(anyLong(), anyLong(), anyInt(), any(Throwable.class));
     }
 }
