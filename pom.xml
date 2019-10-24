@@ -26,10 +26,6 @@
     </scm>
 
     <distributionManagement>
-        <repository>
-            <id>bintray</id>
-            <url>https://api.bintray.com/maven/urbanairship/open-source/sarlacc-pit/;publish=1</url>
-        </repository>
         <snapshotRepository>
             <id>snapshots</id>
             <url>gs://airship-maven-snapshots/snapshots</url>
