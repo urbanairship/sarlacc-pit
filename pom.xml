@@ -26,12 +26,26 @@
     </scm>
 
     <distributionManagement>
+        <repository>
+            <id>releases</id>
+            <url>gs://airship-maven-artifacts/releases</url>
+        </repository>
         <snapshotRepository>
             <id>snapshots</id>
             <url>gs://airship-maven-snapshots/snapshots</url>
         </snapshotRepository>
     </distributionManagement>
 
+    <repositories>
+        <repository>
+            <id>airship-releases</id>
+            <url>gs://airship-maven-artifacts/releases</url>
+        </repository>
+        <repository>
+            <id>airship-thirdparty</id>
+            <url>gs://airship-maven-artifacts/thirdparty</url>
+        </repository>
+    </repositories>
 
     <build>
         <extensions>
