@@ -1,7 +1,7 @@
 package com.urbanairship.sarlacc.client.callbacks;
 
 import com.google.common.collect.ImmutableSet;
-import com.urbanairship.sarlacc.client.FetchFailureCallback;
+import com.urbanairship.sarlacc.client.FailureCallback;
 import com.urbanairship.sarlacc.client.UpdateService;
 import com.urbanairship.sarlacc.client.model.Update;
 import com.urbanairship.sarlacc.client.processor.UpdateProcessor;
@@ -19,22 +19,18 @@ import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
 
-import static org.mockito.AdditionalMatchers.and;
-import static org.mockito.AdditionalMatchers.geq;
-import static org.mockito.AdditionalMatchers.gt;
-import static org.mockito.AdditionalMatchers.lt;
 import static org.mockito.Matchers.any;
-import static org.mockito.Matchers.anyInt;
 import static org.mockito.Matchers.anyLong;
 import static org.mockito.Matchers.anyString;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 import static org.mockito.Mockito.verifyZeroInteractions;
 import static org.mockito.Mockito.when;
 
-public class TestFetchFailureCallback {
+public class TestFailureCallback {
     @Mock
     ConfigSource<String> configSource;
 
@@ -42,7 +38,7 @@ public class TestFetchFailureCallback {
     UpdateProcessor<String, Set<String>> updateProcessor;
 
     @Mock
-    FetchFailureCallback fetchFailureCallback;
+    FailureCallback failureCallback;
 
     private UpdateService<String, Set<String>> updateService;
 
@@ -55,7 +51,7 @@ public class TestFetchFailureCallback {
                 .setUpdateProcessor(updateProcessor)
                 .setConfigSource(configSource)
                 .setFetchInterval(100, TimeUnit.MILLISECONDS)
-                .setFetchFailureCallback(fetchFailureCallback)
+                .setFailureCallback(failureCallback)
                 .build();
     }
 
@@ -79,7 +75,7 @@ public class TestFetchFailureCallback {
         updateService.startAsync().awaitRunning();
 
         latch.await();
-        verifyZeroInteractions(fetchFailureCallback);
+        verifyZeroInteractions(failureCallback);
     }
 
     @Test
@@ -90,10 +86,10 @@ public class TestFetchFailureCallback {
                 new CountDownAnswer<Optional<Update<String>>>(latch, Optional.<Update<String>>empty());
 
         when(updateProcessor.process(anyString())).thenReturn(ImmutableSet.<String>of());
-        final long timestamp = System.currentTimeMillis();
+        final long version = System.currentTimeMillis();
 
         when(configSource.fetch())
-                .then(new CountDownAnswer<>(latch, new Update<>(timestamp, "")));
+                .then(new CountDownAnswer<>(latch, new Update<>(version, "")));
         when(configSource.fetchIfNewer(anyLong()))
                 .then(answerOptional)
                 .thenThrow(ioException)
@@ -104,7 +100,8 @@ public class TestFetchFailureCallback {
         updateService.startAsync().awaitRunning();
         latch.await();
 
-        verify(fetchFailureCallback, times(3)).onFetchFailure(eq(timestamp), geq(timestamp), and(gt(0), lt(4)), eq(ioException));
+        verify(failureCallback, times(3)).onFailure(any(), eq(ioException));
+        verifyNoMoreInteractions(failureCallback);
     }
 
     // Make sure we correctly deal with the failure callback itself throwing
@@ -115,8 +112,8 @@ public class TestFetchFailureCallback {
         final CountDownAnswer<Optional<Update<String>>> answerOptional =
                 new CountDownAnswer<Optional<Update<String>>>(latch, Optional.<Update<String>>empty());
 
-        doThrow(new NullPointerException()).when(fetchFailureCallback)
-                .onFetchFailure(anyLong(), anyLong(), anyInt(), any(Throwable.class));
+        doThrow(new NullPointerException()).when(failureCallback)
+                .onFailure(any(), any(Throwable.class));
 
         when(updateProcessor.process(anyString())).thenReturn(ImmutableSet.<String>of());
 
@@ -130,6 +127,6 @@ public class TestFetchFailureCallback {
         updateService.startAsync().awaitRunning();
         latch.await();
 
-        verify(fetchFailureCallback).onFetchFailure(anyLong(), anyLong(), anyInt(), any(Throwable.class));
+        verify(failureCallback).onFailure(any(), any(Throwable.class));
     }
 }

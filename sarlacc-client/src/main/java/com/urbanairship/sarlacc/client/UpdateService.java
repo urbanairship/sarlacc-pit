@@ -12,6 +12,7 @@ import com.google.common.collect.ImmutableSet;
 import com.google.common.util.concurrent.AbstractIdleService;
 import com.urbanairship.sarlacc.client.metrics.JmxMetricNamer;
 import com.urbanairship.sarlacc.client.metrics.MetricNamer;
+import com.urbanairship.sarlacc.client.model.LastSuccessDetails;
 import com.urbanairship.sarlacc.client.model.Update;
 import com.urbanairship.sarlacc.client.processor.UpdateProcessor;
 import com.urbanairship.sarlacc.client.source.ConfigSource;
@@ -23,7 +24,6 @@ import org.apache.log4j.LogManager;
 import org.apache.log4j.Logger;
 
 import java.io.Closeable;
-import java.io.IOException;
 import java.time.Instant;
 import java.util.List;
 import java.util.Map;
@@ -47,7 +47,8 @@ import java.util.function.Function;
 public class UpdateService<S, C> extends AbstractIdleService {
     private static final Logger log = LogManager.getLogger(UpdateService.class);
 
-    private static final Closeable NOOP_CLOSEABLE = () -> {};
+    private static final Closeable NOOP_CLOSEABLE = () -> {
+    };
 
     private final UpdatingCollection<C> updatingCollection;
     private final AtomicReference<C> reference;
@@ -59,12 +60,12 @@ public class UpdateService<S, C> extends AbstractIdleService {
     private final long fetchIntervalMillis;
     private final ScheduledExecutorService executorService;
 
-    private final FetchFailureCallback fetchFailureCallback;
+    private final FailureCallback failureCallback;
     private final UpdateCallback<C> updateCallback;
     private final AtomicInteger successiveFailures = new AtomicInteger(0);
     private final long maxFailures;
 
-    private final AtomicReference<Long> lastSuccessfulCheck;
+    private final AtomicReference<Instant> lastSuccessfulCheck;
 
     private final Optional<C> fallbackValue;
     private final long fallbackVersion;
@@ -76,7 +77,7 @@ public class UpdateService<S, C> extends AbstractIdleService {
     private UpdateService(ConfigSource<S> configSource, UpdateProcessor<S, ? extends C> updateProcessor,
                           AtomicReference<C> reference, UpdatingCollection<C> updatingCollection,
                           final long fetchIntervalMillis, String serviceName, long maxFailures, Optional<MetricRegistry> metricRegistry,
-                          MetricNamer metricNamer, FetchFailureCallback fetchFailureCallback, UpdateCallback<C> updateCallback,
+                          MetricNamer metricNamer, FailureCallback failureCallback, UpdateCallback<C> updateCallback,
                           Optional<C> fallbackValue, long fallbackVersion) {
 
         this.configSource = configSource;
@@ -86,14 +87,14 @@ public class UpdateService<S, C> extends AbstractIdleService {
         this.reference = reference;
         this.updatingCollection = updatingCollection;
         this.maxFailures = maxFailures;
-        this.fetchFailureCallback = fetchFailureCallback;
+        this.failureCallback = failureCallback;
         this.updateCallback = updateCallback;
         this.fallbackValue = fallbackValue;
         this.fallbackVersion = fallbackVersion;
 
         this.currentVersion = new AtomicReference<>(0L);
         this.executorService = Executors.newScheduledThreadPool(1);
-        this.lastSuccessfulCheck = new AtomicReference<>(System.currentTimeMillis());
+        this.lastSuccessfulCheck = new AtomicReference<>(Instant.now());
 
         this.metrics = metricRegistry.map(registry -> new Metrics(registry, metricNamer));
     }
@@ -107,7 +108,7 @@ public class UpdateService<S, C> extends AbstractIdleService {
     }
 
     public Instant getLastSuccessfulCheck() {
-        return Instant.ofEpochMilli(lastSuccessfulCheck.get());
+        return lastSuccessfulCheck.get();
     }
 
     public long getCurrentVersion() {
@@ -132,7 +133,7 @@ public class UpdateService<S, C> extends AbstractIdleService {
                 log.error("Update callback threw!", t);
                 metrics.ifPresent(metrics -> metrics.updateCallbackFailures.inc());
             }
-        } catch (IOException ioe) {
+        } catch (Throwable t) {
             if (fallbackValue.isPresent()) {
                 reference.set(fallbackValue.get());
                 currentVersion.set(fallbackVersion);
@@ -141,12 +142,33 @@ public class UpdateService<S, C> extends AbstractIdleService {
                     updatingCollection.setBlockReads(true);
                 }
 
-                log.error("Initial fetch failed and fallback used for service: " + serviceName, ioe);
+                try (Closeable failCallbackTime = getTimer(Metrics::getFailureCallbackTimer)) {
+                    switch (failureCallback.onFailure(Optional.empty(), t)) {
+                        case NO_ACTION:
+                            break;
+
+                        case BLOCK_READS:
+                            updatingCollection.setBlockReads(true);
+                            break;
+
+                        case SHUT_DOWN:
+                            //We can't stop the service from inside startUp(), so all we can really do is throw.
+                            throw new Exception(String.format("UpdateService %s failed initial fetch and process, and failure callback returned SHUT_DOWN", serviceName), t);
+
+                        default:
+                            log.error("Unknown failure callback action!");
+                    }
+
+                } catch (Throwable callbackThrown) {
+                    log.error("Failure callback threw!", callbackThrown);
+                    metrics.ifPresent(metrics -> metrics.getFailureCallbackFailures().inc());
+                }
+
+
+                log.error("Initial fetch failed and fallback used for service: " + serviceName, t);
             } else {
-                throw new Exception("Exception while starting update service for " + serviceName, ioe);
+                throw new Exception("Exception while starting update service for " + serviceName, t);
             }
-        } catch (Exception e) {
-            throw new Exception("Exception while starting update service for " + serviceName, e);
         }
 
         executorService.scheduleAtFixedRate(new FetcherRunnable(), fetchIntervalMillis, fetchIntervalMillis, TimeUnit.MILLISECONDS);
@@ -174,8 +196,6 @@ public class UpdateService<S, C> extends AbstractIdleService {
                             maybeUpdate = configSource.fetchIfNewer(currentVersion.get());
                         }
                     }
-                    successiveFailures.set(0);
-                    updatingCollection.setBlockReads(false);
 
                     if (maybeUpdate.isPresent()) {
                         try (final Update<S> update = maybeUpdate.get()) {
@@ -216,8 +236,10 @@ public class UpdateService<S, C> extends AbstractIdleService {
                         log.debug(String.format("Checked for update for '%s', but everything was up to date.", serviceName));
                     }
 
+                    successiveFailures.set(0);
+                    updatingCollection.setBlockReads(false);
                     lastError.set(null);
-                    lastSuccessfulCheck.set(System.currentTimeMillis());
+                    lastSuccessfulCheck.set(Instant.now());
                 }
             } catch (Throwable t) {
                 final int failures = successiveFailures.incrementAndGet();
@@ -229,11 +251,29 @@ public class UpdateService<S, C> extends AbstractIdleService {
                 lastError.set(t.getMessage());
                 metrics.ifPresent(metrics -> metrics.getErrorMeter().mark());
 
-                try (Closeable fetchFailCallbackTime = getTimer(Metrics::getFetchFailCallbackTimer)) {
-                    fetchFailureCallback.onFetchFailure(currentVersion.get(), lastSuccessfulCheck.get(), failures, t);
-                } catch (Throwable fetchThrown) {
-                    log.error("Fetch failure callback threw!", fetchThrown);
-                    metrics.ifPresent(metrics -> metrics.getFetchFailureCallbackFailures().inc());
+                try (Closeable failCallbackTime = getTimer(Metrics::getFailureCallbackTimer)) {
+                    final LastSuccessDetails lastSuccessDetails =
+                            new LastSuccessDetails(currentVersion.get(), lastSuccessfulCheck.get(), failures);
+
+                    switch (failureCallback.onFailure(Optional.of(lastSuccessDetails), t)) {
+                        case NO_ACTION:
+                            break;
+
+                        case BLOCK_READS:
+                            updatingCollection.setBlockReads(true);
+                            break;
+
+                        case SHUT_DOWN:
+                            UpdateService.this.stopAsync();
+                            return;
+
+                        default:
+                            log.error("Unknown failure callback action!");
+                    }
+
+                } catch (Throwable callbackThrown) {
+                    log.error("Failure callback threw!", callbackThrown);
+                    metrics.ifPresent(metrics -> metrics.getFailureCallbackFailures().inc());
                 }
             }
         }
@@ -269,8 +309,9 @@ public class UpdateService<S, C> extends AbstractIdleService {
         private Optional<MetricRegistry> metricRegistry = Optional.empty();
         private MetricNamer metricNamer = new JmxMetricNamer();
 
-        private UpdateCallback<D> updateCallback = (p, pm, c, cm) -> {};
-        private FetchFailureCallback fetchFailureCallback = (l, l2, i, t) -> {};
+        private UpdateCallback<D> updateCallback = (p, pm, c, cm) -> {
+        };
+        private FailureCallback failureCallback = (d, t) -> FailureCallback.Action.NO_ACTION;
         private long maxFailures = Long.MAX_VALUE;
 
         private Builder(AtomicReference<D> backingRef, UpdatingCollection<D> collectionWrapper) {
@@ -313,8 +354,8 @@ public class UpdateService<S, C> extends AbstractIdleService {
             return this;
         }
 
-        public Builder<S, D> setFetchFailureCallback(FetchFailureCallback fetchFailureCallback) {
-            this.fetchFailureCallback = fetchFailureCallback;
+        public Builder<S, D> setFailureCallback(FailureCallback failureCallback) {
+            this.failureCallback = failureCallback;
             return this;
         }
 
@@ -338,7 +379,7 @@ public class UpdateService<S, C> extends AbstractIdleService {
 
             final UpdateService<S, D> updateService = new UpdateService<>(configSource, updateProcessor, backingRef,
                     collectionWrapper, fetchIntervalMillis, serviceName, maxFailures, metricRegistry, metricNamer,
-                    fetchFailureCallback, updateCallback, fallbackValue, fallbackVersion);
+                    failureCallback, updateCallback, fallbackValue, fallbackVersion);
 
             collectionWrapper.setUpdateService(updateService);
 
@@ -371,7 +412,7 @@ public class UpdateService<S, C> extends AbstractIdleService {
             this.fallbackUsed = metricRegistry.counter(metricNamer.name(UpdateService.class, "Fallback Used", Optional.of(serviceName)));
 
             metricRegistry.register(metricNamer.name(UpdateService.class, "Check Age", Optional.of(serviceName)),
-                    (Gauge<Long>) () -> System.currentTimeMillis() - lastSuccessfulCheck.get());
+                    (Gauge<Long>) () -> System.currentTimeMillis() - lastSuccessfulCheck.get().toEpochMilli());
 
             metricRegistry.register(metricNamer.name(UpdateService.class, "Value Version", Optional.of(serviceName)),
                     (Gauge<Long>) currentVersion::get);
@@ -389,7 +430,7 @@ public class UpdateService<S, C> extends AbstractIdleService {
             return updateCallbackTimer;
         }
 
-        private Timer getFetchFailCallbackTimer() {
+        private Timer getFailureCallbackTimer() {
             return fetchFailCallbackTimer;
         }
 
@@ -401,7 +442,7 @@ public class UpdateService<S, C> extends AbstractIdleService {
             return updateCallbackFailures;
         }
 
-        private Counter getFetchFailureCallbackFailures() {
+        private Counter getFailureCallbackFailures() {
             return fetchFailureCallbackFailures;
         }
 
