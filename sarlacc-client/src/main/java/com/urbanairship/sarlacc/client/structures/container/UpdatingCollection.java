@@ -36,8 +36,7 @@ public abstract class UpdatingCollection<C> {
         } else if (blockReads) {
             throw new IllegalStateException("Data too stale, read failed!");
         } else if (updateService.state() != Service.State.RUNNING) {
-            final String msg = String.format(
-                    "Attempted to read updating collection backed by non-running update service. State: '%s'",
+            final String msg = "Attempted to read updating collection backed by non-running update service. State: '%s'".formatted(
                     updateService.state());
             throw new IllegalStateException(msg);
         }

@@ -21,7 +21,7 @@ import java.util.concurrent.Semaphore;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.Assert.assertEquals;
-import static org.mockito.Matchers.anyLong;
+import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 
 public class TestUpdateCallback {
@@ -81,7 +81,7 @@ public class TestUpdateCallback {
         assertEquals(2, callHistory.size());
 
         final ArgSet expectedInitCall = new ArgSet(Optional.empty(), Optional.empty(), ImmutableSet.of(initStr), initTime);
-        assertEquals(expectedInitCall, callHistory.get(0));
+        assertEquals(expectedInitCall, callHistory.getFirst());
 
         final ArgSet expectedUpdateCall = new ArgSet(Optional.of(ImmutableSet.of(initStr)), Optional.of(initTime),
                 ImmutableSet.of(updateStr), updateTime);

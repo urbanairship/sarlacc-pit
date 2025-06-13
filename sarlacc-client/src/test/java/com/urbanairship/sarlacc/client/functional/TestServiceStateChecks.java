@@ -10,6 +10,7 @@ import com.urbanairship.sarlacc.client.structures.container.UpdatingMap;
 import com.urbanairship.sarlacc.client.structures.container.UpdatingSet;
 import org.apache.commons.lang.RandomStringUtils;
 import org.junit.Assert;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -51,14 +52,14 @@ public class TestServiceStateChecks {
                 method.invoke(updatingMap, arguments);
                 Assert.fail("Expected call to throw, but it didn't! Method: " + method.getName());
             } catch (Throwable t) {
-                Assert.assertTrue(String.format("Unexpected exception for method '%s': %s ", method.getName(), Throwables.getStackTraceAsString(t)),
+                Assert.assertTrue("Unexpected exception for method '%s': %s ".formatted(method.getName(), Throwables.getStackTraceAsString(t)),
                         t.getCause() instanceof IllegalStateException || t.getCause() instanceof UnsupportedOperationException);
             }
         }
 
         Mockito.verify(updateService, Mockito.atLeast(1)).state();
         Mockito.verifyNoMoreInteractions(updateService);
-        Mockito.verifyZeroInteractions(backingMap);
+        Mockito.verifyNoInteractions(backingMap);
     }
 
     @Test
@@ -120,7 +121,7 @@ public class TestServiceStateChecks {
 
         Mockito.verify(updateService, Mockito.atLeast(1)).state();
         Mockito.verifyNoMoreInteractions(updateService);
-        Mockito.verifyZeroInteractions(backingList);
+        Mockito.verifyNoInteractions(backingList);
     }
 
     @Test
@@ -151,7 +152,7 @@ public class TestServiceStateChecks {
 
         Mockito.verify(updateService, Mockito.atLeast(1)).state();
         Mockito.verifyNoMoreInteractions(updateService);
-        Mockito.verify(backingList, Mockito.times(1)).contains(Mockito.anyString());
+        Mockito.verify(backingList, Mockito.times(1)).contains(Mockito.any());
     }
 
     @Test
@@ -182,7 +183,7 @@ public class TestServiceStateChecks {
 
         Mockito.verify(updateService, Mockito.atLeast(1)).state();
         Mockito.verifyNoMoreInteractions(updateService);
-        Mockito.verifyZeroInteractions(backingSet);
+        Mockito.verifyNoInteractions(backingSet);
     }
 
     @Test
@@ -214,7 +215,7 @@ public class TestServiceStateChecks {
         Mockito.verify(updateService, Mockito.atLeast(1)).state();
         Mockito.verifyNoMoreInteractions(updateService);
 
-        Mockito.verify(backingSet, Mockito.times(1)).contains(Mockito.anyString());
+        Mockito.verify(backingSet, Mockito.times(1)).contains(Mockito.any());
     }
 
     private Object[] getArguments(Parameter[] parameters) {

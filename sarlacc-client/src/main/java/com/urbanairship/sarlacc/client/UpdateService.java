@@ -153,7 +153,7 @@ public class UpdateService<S, C> extends AbstractIdleService {
 
                         case SHUT_DOWN:
                             //We can't stop the service from inside startUp(), so all we can really do is throw.
-                            throw new Exception(String.format("UpdateService %s failed initial fetch and process, and failure callback returned SHUT_DOWN", serviceName), t);
+                            throw new Exception("UpdateService %s failed initial fetch and process, and failure callback returned SHUT_DOWN".formatted(serviceName), t);
 
                         default:
                             log.error("Unknown failure callback action!");
@@ -233,7 +233,7 @@ public class UpdateService<S, C> extends AbstractIdleService {
                             }
                         }
                     } else if (log.isDebugEnabled()) {
-                        log.debug(String.format("Checked for update for '%s', but everything was up to date.", serviceName));
+                        log.debug("Checked for update for '%s', but everything was up to date.".formatted(serviceName));
                     }
 
                     successiveFailures.set(0);

@@ -30,7 +30,7 @@ public class DelimitedMetricNamer implements MetricNamer {
             }
             escapedDelimiter.append(c);
         }
-        return String.format("(\\$$)|(%s)", escapedDelimiter);
+        return "(\\$$)|(%s)".formatted(escapedDelimiter);
     }
 
     @Override

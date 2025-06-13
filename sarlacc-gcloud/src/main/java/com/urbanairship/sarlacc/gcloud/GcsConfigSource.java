@@ -12,10 +12,10 @@ import com.google.common.base.Preconditions;
 import com.google.common.collect.Lists;
 import com.urbanairship.sarlacc.client.model.Update;
 import com.urbanairship.sarlacc.client.source.ConfigSource;
-import sun.nio.ch.ChannelInputStream;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.nio.channels.Channels;
 import java.util.ArrayList;
 import java.util.Optional;
 
@@ -56,7 +56,7 @@ public class GcsConfigSource implements ConfigSource<InputStream> {
 
         //Instead of a 404, get() returns null if no object is present. Neat.
         if (blob == null) {
-            throw new IOException(String.format("Couldn't find object %s in bucket %s", sourceBlob.getName(), sourceBlob.getBucket()));
+            throw new IOException("Couldn't find object %s in bucket %s".formatted(sourceBlob.getName(), sourceBlob.getBucket()));
         }
 
         if (blob.getGeneration() < ifNewerThan) {
@@ -66,7 +66,7 @@ public class GcsConfigSource implements ConfigSource<InputStream> {
         final ReadChannel reader = blob.reader(blobSourceOptions);
         final long generation = blob.getBlobId().getGeneration();
 
-        return Optional.of(new Update<>(generation, new ChannelInputStream(reader)));
+        return Optional.of(new Update<>(generation, Channels.newInputStream(reader)));
     }
 
     @Override
@@ -85,7 +85,8 @@ public class GcsConfigSource implements ConfigSource<InputStream> {
         final ReadChannel reader = blob.reader(blobSourceOptions);
         final long generation = blob.getBlobId().getGeneration();
 
-        return new Update<>(generation, new ChannelInputStream(reader));
+
+        return new Update<>(generation, Channels.newInputStream(reader));
     }
 
     public static GcsConfigSource basicGcsSource(String bucket, String object) {

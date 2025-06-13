@@ -73,21 +73,21 @@ public class DelimitedStreamMapProcessor<K, V> implements UpdateProcessor<InputS
         public boolean processLine(String line) throws IOException {
             final String[] split = line.split(delimiter);
             if (split.length != 2) {
-                throw new RuntimeException(String.format("Expected line in format 'key%svalue', but got: '%s'", delimiter, line));
+                throw new RuntimeException("Expected line in format 'key%svalue', but got: '%s'".formatted(delimiter, line));
             }
 
             final K key;
             try {
                 key = keyParser.apply(split[0]);
             } catch (Throwable t) {
-                throw new RuntimeException(String.format("Couldn't parse key from line: '%s'", line), t);
+                throw new RuntimeException("Couldn't parse key from line: '%s'".formatted(line), t);
             }
 
             final V value;
             try {
                 value = valueParser.apply(split[1]);
             } catch (Throwable t) {
-                throw new RuntimeException(String.format("Couldn't parse value from line: '%s'", line), t);
+                throw new RuntimeException("Couldn't parse value from line: '%s'".formatted(line), t);
             }
 
             mapBuilder.put(key, value);

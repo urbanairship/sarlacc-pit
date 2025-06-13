@@ -52,7 +52,7 @@ public class TestMaxFailures {
         barrier.await();
         barrier.await();
 
-        service.getUpdatingCollection().get(0);
+        service.getUpdatingCollection().getFirst();
     }
 
     @Test
@@ -75,7 +75,7 @@ public class TestMaxFailures {
         barrier.await();
 
         try {
-            service.getUpdatingCollection().get(0);
+            service.getUpdatingCollection().getFirst();
             Assert.fail("Expected get to fail");
         } catch (IllegalStateException e) {
             //Expected
@@ -85,7 +85,7 @@ public class TestMaxFailures {
         barrier.await();
         barrier.await();
 
-        service.getUpdatingCollection().get(0);
+        service.getUpdatingCollection().getFirst();
     }
 
     @Test
@@ -107,12 +107,12 @@ public class TestMaxFailures {
         barrier.await();
         barrier.await();
 
-        service.getUpdatingCollection().get(0);
+        service.getUpdatingCollection().getFirst();
         barrier.await();
         barrier.await();
 
         try {
-            service.getUpdatingCollection().get(0);
+            service.getUpdatingCollection().getFirst();
             Assert.fail("Expected get to fail");
         } catch (IllegalStateException e) {
             //Expected
@@ -122,7 +122,7 @@ public class TestMaxFailures {
         barrier.await();
         barrier.await();
 
-        service.getUpdatingCollection().get(0);
+        service.getUpdatingCollection().getFirst();
     }
 
     private static class BlockingConfigSource implements ConfigSource<String> {
