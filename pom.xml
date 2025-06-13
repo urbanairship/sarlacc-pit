@@ -107,7 +107,7 @@
                 </executions>
             </plugin>
 
-            <!--plugin>
+            <plugin>
                     <groupId>org.basepom.maven</groupId>
                     <artifactId>duplicate-finder-maven-plugin</artifactId>
                     <version>2.0.1</version>
@@ -123,12 +123,8 @@
                     <failBuildInCaseOfDifferentContentConflict>true</failBuildInCaseOfDifferentContentConflict>
                     <failBuildInCaseOfEqualContentConflict>false</failBuildInCaseOfEqualContentConflict>
                     <checkTestClasspath>false</checkTestClasspath>
-                    <ignoredResources>
-                      <ignoredResource>.*log4j.properties</ignoredResource>
-                      <ignoredResource>.*html</ignoredResource>
-                    </ignoredResources>
                 </configuration>
-            </plugin-->
+            </plugin>
             <plugin>
                 <groupId>org.openrewrite.maven</groupId>
                 <artifactId>rewrite-maven-plugin</artifactId>
@@ -237,9 +233,13 @@
             <dependency>
                 <groupId>com.google.http-client</groupId>
                 <artifactId>google-http-client-jackson2</artifactId>
-                <version>1.24.1</version>
+                <version>${google-http-client.version}</version>
             </dependency>
-
+            <dependency>
+                <groupId>com.google.http-client</groupId>
+                <artifactId>google-http-client</artifactId>
+                <version>${google-http-client.version}</version>
+            </dependency>
             <dependency>
                 <groupId>com.google.auto.value</groupId>
                 <artifactId>auto-value</artifactId>
@@ -267,7 +267,7 @@
             <dependency>
                 <groupId>com.google.guava</groupId>
                 <artifactId>guava</artifactId>
-                <version>29.0-jre</version>
+                <version>33.4.8-jre</version>
             </dependency>
 
             <dependency>
