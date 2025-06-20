@@ -19,7 +19,7 @@ public class HttpConfigSource implements ConfigSource<InputStream> {
         try {
             this.sourceUrl = new URL(sourceUrlStr);
         } catch (Exception e) {
-            throw new RuntimeException("Error while parsing '%s' as a url.".formatted(sourceUrlStr), e);
+            throw new RuntimeException(String.format("Error while parsing '%s' as a url.", sourceUrlStr), e);
         }
     }
 
@@ -45,7 +45,7 @@ public class HttpConfigSource implements ConfigSource<InputStream> {
         } else if (status == HttpURLConnection.HTTP_NOT_MODIFIED) {
             return Optional.empty();
         } else {
-            throw new RuntimeException("Unexpected response code: %d when fetching from %s".formatted(status, sourceUrl));
+            throw new RuntimeException(String.format("Unexpected response code: %d when fetching from %s", status, sourceUrl));
         }
     }
 

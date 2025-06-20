@@ -81,7 +81,7 @@ public class TestUpdateCallback {
         assertEquals(2, callHistory.size());
 
         final ArgSet expectedInitCall = new ArgSet(Optional.empty(), Optional.empty(), ImmutableSet.of(initStr), initTime);
-        assertEquals(expectedInitCall, callHistory.getFirst());
+        assertEquals(expectedInitCall, callHistory.get(0));
 
         final ArgSet expectedUpdateCall = new ArgSet(Optional.of(ImmutableSet.of(initStr)), Optional.of(initTime),
                 ImmutableSet.of(updateStr), updateTime);

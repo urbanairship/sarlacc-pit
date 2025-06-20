@@ -56,7 +56,7 @@ public class GcsConfigSource implements ConfigSource<InputStream> {
 
         //Instead of a 404, get() returns null if no object is present. Neat.
         if (blob == null) {
-            throw new IOException("Couldn't find object %s in bucket %s".formatted(sourceBlob.getName(), sourceBlob.getBucket()));
+            throw new IOException(String.format("Couldn't find object %s in bucket %s", sourceBlob.getName(), sourceBlob.getBucket()));
         }
 
         if (blob.getGeneration() < ifNewerThan) {

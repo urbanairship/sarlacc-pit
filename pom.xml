@@ -20,6 +20,7 @@
         <jetty.version>9.3.24.v20180605</jetty.version>
         <airship-client.version>3.3.2</airship-client.version>
         <google-http-client.version>1.47.0</google-http-client.version>
+        <java.release.version>8</java.release.version>
     </properties>
 
     <scm>
@@ -84,7 +85,7 @@
                 <artifactId>maven-compiler-plugin</artifactId>
                 <version>3.14.0</version>
                 <configuration>
-                    <release>21</release>
+                    <release>${java.release.version}</release>
                 </configuration>
             </plugin>
 

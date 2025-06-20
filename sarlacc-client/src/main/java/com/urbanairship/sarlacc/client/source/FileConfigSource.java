@@ -40,7 +40,8 @@ public class FileConfigSource implements ConfigSource<InputStream> {
         if (file.canRead()) {
             return file;
         } else {
-            throw new IOException("Couldn't access '%s' Exists: %b Readable: %b".formatted(filePath, file.exists(), file.canRead()));
+            throw new IOException(String.format(
+                    "Couldn't access '%s' Exists: %b Readable: %b", filePath, file.exists(), file.canRead()));
         }
     }
 

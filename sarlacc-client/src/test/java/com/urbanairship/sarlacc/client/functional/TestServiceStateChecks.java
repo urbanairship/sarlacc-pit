@@ -10,7 +10,6 @@ import com.urbanairship.sarlacc.client.structures.container.UpdatingMap;
 import com.urbanairship.sarlacc.client.structures.container.UpdatingSet;
 import org.apache.commons.lang.RandomStringUtils;
 import org.junit.Assert;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.mockito.Mockito;
 
@@ -52,7 +51,7 @@ public class TestServiceStateChecks {
                 method.invoke(updatingMap, arguments);
                 Assert.fail("Expected call to throw, but it didn't! Method: " + method.getName());
             } catch (Throwable t) {
-                Assert.assertTrue("Unexpected exception for method '%s': %s ".formatted(method.getName(), Throwables.getStackTraceAsString(t)),
+                Assert.assertTrue(String.format("Unexpected exception for method '%s': %s ", method.getName(), Throwables.getStackTraceAsString(t)),
                         t.getCause() instanceof IllegalStateException || t.getCause() instanceof UnsupportedOperationException);
             }
         }
