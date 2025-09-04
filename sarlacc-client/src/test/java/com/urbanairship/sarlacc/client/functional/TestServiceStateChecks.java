@@ -58,7 +58,7 @@ public class TestServiceStateChecks {
 
         Mockito.verify(updateService, Mockito.atLeast(1)).state();
         Mockito.verifyNoMoreInteractions(updateService);
-        Mockito.verifyZeroInteractions(backingMap);
+        Mockito.verifyNoInteractions(backingMap);
     }
 
     @Test
@@ -120,7 +120,7 @@ public class TestServiceStateChecks {
 
         Mockito.verify(updateService, Mockito.atLeast(1)).state();
         Mockito.verifyNoMoreInteractions(updateService);
-        Mockito.verifyZeroInteractions(backingList);
+        Mockito.verifyNoInteractions(backingList);
     }
 
     @Test
@@ -151,7 +151,7 @@ public class TestServiceStateChecks {
 
         Mockito.verify(updateService, Mockito.atLeast(1)).state();
         Mockito.verifyNoMoreInteractions(updateService);
-        Mockito.verify(backingList, Mockito.times(1)).contains(Mockito.anyString());
+        Mockito.verify(backingList, Mockito.times(1)).contains(Mockito.any());
     }
 
     @Test
@@ -182,7 +182,7 @@ public class TestServiceStateChecks {
 
         Mockito.verify(updateService, Mockito.atLeast(1)).state();
         Mockito.verifyNoMoreInteractions(updateService);
-        Mockito.verifyZeroInteractions(backingSet);
+        Mockito.verifyNoInteractions(backingSet);
     }
 
     @Test
@@ -214,7 +214,7 @@ public class TestServiceStateChecks {
         Mockito.verify(updateService, Mockito.atLeast(1)).state();
         Mockito.verifyNoMoreInteractions(updateService);
 
-        Mockito.verify(backingSet, Mockito.times(1)).contains(Mockito.anyString());
+        Mockito.verify(backingSet, Mockito.times(1)).contains(Mockito.any());
     }
 
     private Object[] getArguments(Parameter[] parameters) {
