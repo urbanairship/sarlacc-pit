@@ -47,8 +47,7 @@ import java.util.function.Function;
 public class UpdateService<S, C> extends AbstractIdleService {
     private static final Logger log = LogManager.getLogger(UpdateService.class);
 
-    private static final Closeable NOOP_CLOSEABLE = () -> {
-    };
+    private static final AutoCloseable NOOP_AUTOCLOSEABLE = () ->{};
 
     private final UpdatingCollection<C> updatingCollection;
     private final AtomicReference<C> reference;
@@ -142,7 +141,7 @@ public class UpdateService<S, C> extends AbstractIdleService {
                     updatingCollection.setBlockReads(true);
                 }
 
-                try (Closeable failCallbackTime = getTimer(Metrics::getFailureCallbackTimer)) {
+                try (AutoCloseable failCallbackTime = getTimer(Metrics::getFailureCallbackTimer)) {
                     switch (failureCallback.onFailure(Optional.empty(), t)) {
                         case NO_ACTION:
                             break;
@@ -189,7 +188,7 @@ public class UpdateService<S, C> extends AbstractIdleService {
                 // This shouldn't be called in an overlapping manner, but let's be paranoid.
                 synchronized (UpdateService.this) {
                     final Optional<Update<S>> maybeUpdate;
-                    try (Closeable checkTime = getTimer(Metrics::getCheckTimer)) {
+                    try (AutoCloseable checkTime = getTimer(Metrics::getCheckTimer)) {
                         if (fallbackValue.isPresent() && fallbackValue.get() == reference.get()) {
                             maybeUpdate = Optional.of(configSource.fetch());
                         } else {
@@ -203,7 +202,7 @@ public class UpdateService<S, C> extends AbstractIdleService {
                             final long newVersion;
                             final C oldVal;
                             final long oldVersion;
-                            try (final Closeable processTime = getTimer(Metrics::getFetchAndProcessTimer)) {
+                            try (final AutoCloseable processTime = getTimer(Metrics::getFetchAndProcessTimer)) {
                                 newVal = updateProcessor.process(update.newVal);
                                 newVersion = update.version;
                                 oldVal = reference.get();
@@ -215,7 +214,7 @@ public class UpdateService<S, C> extends AbstractIdleService {
 
                             log.info("Updated backing value for " + serviceName);
 
-                            try (final Closeable callbackTimer = getTimer(Metrics::getUpdateCallbackTimer)) {
+                            try (final AutoCloseable callbackTimer = getTimer(Metrics::getUpdateCallbackTimer)) {
                                 final Optional<C> oldValForCallback;
                                 final Optional<Long> oldVersionForCallback;
                                 if (fallbackValue.isPresent() && fallbackValue.get() == oldVal) {
@@ -251,7 +250,7 @@ public class UpdateService<S, C> extends AbstractIdleService {
                 lastError.set(t.getMessage());
                 metrics.ifPresent(metrics -> metrics.getErrorMeter().mark());
 
-                try (Closeable failCallbackTime = getTimer(Metrics::getFailureCallbackTimer)) {
+                try (AutoCloseable failCallbackTime = getTimer(Metrics::getFailureCallbackTimer)) {
                     final LastSuccessDetails lastSuccessDetails =
                             new LastSuccessDetails(currentVersion.get(), lastSuccessfulCheck.get(), failures);
 
@@ -387,8 +386,12 @@ public class UpdateService<S, C> extends AbstractIdleService {
         }
     }
 
-    private Closeable getTimer(Function<Metrics, Timer> timerGetter) {
-        return metrics.map(timerGetter).map(timer -> (Closeable) timer.time()).orElse(NOOP_CLOSEABLE);
+    private AutoCloseable getTimer(Function<Metrics, Timer> timerGetter) {
+        final Optional<Timer> timer = this.metrics.map(timerGetter);
+        if (timer.isPresent()) {
+            return timer.get().time();
+        }
+        return NOOP_AUTOCLOSEABLE;
     }
 
     private class Metrics {
